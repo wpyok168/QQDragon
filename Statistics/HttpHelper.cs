@@ -6,14 +6,65 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Security;
+using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Statistics
 {
-    class HttpHelper
+	public static class HttpHelper
     {
+
+		static string[] RestrictedHeaders = new string[] {
+			"Accept",
+			"Connection",
+			"Content-Length",
+			"Content-Type",
+			"Date",
+			"Expect",
+			"Host",
+			"If-Modified-Since",
+			"Keep-Alive",
+			"Proxy-Connection",
+			"Range",
+			"Referer",
+			"Transfer-Encoding",
+			"User-Agent"
+	};
+
+		static Dictionary<string, PropertyInfo> HeaderProperties = new Dictionary<string, PropertyInfo>(StringComparer.OrdinalIgnoreCase);
+
+		static HttpHelper()
+		{
+			Type type = typeof(HttpWebRequest);
+			foreach (string header in RestrictedHeaders)
+			{
+				string propertyName = header.Replace("-", "");
+				PropertyInfo headerProperty = type.GetProperty(propertyName);
+				HeaderProperties[header] = headerProperty;
+			}
+		}
+
+		public static void SetRawHeader(this HttpWebRequest request, string name, string value)
+		{
+			if (HeaderProperties.ContainsKey(name))
+			{
+				PropertyInfo property = HeaderProperties[name];
+				if (property.PropertyType == typeof(DateTime))
+					property.SetValue(request, DateTime.Parse(value), null);
+				else if (property.PropertyType == typeof(bool))
+					property.SetValue(request, Boolean.Parse(value), null);
+				else if (property.PropertyType == typeof(long))
+					property.SetValue(request, Int64.Parse(value), null);
+				else
+					property.SetValue(request, value, null);
+			}
+			else
+			{
+				request.Headers[name] = value;
+			}
+		}
 		public static CookieCollection GetAllCookiesFromHeader(string strHeader, string strHost)
 		{
 			ArrayList al = new ArrayList();
@@ -158,16 +209,11 @@ namespace Statistics
 
 			return cc;
 		}
-		public static string RequestGet(string url, string headeraccept, string contentype, string referer, WebHeaderCollection heard, ref CookieContainer cookieContainers, ref string redirecturl)
+		public static string RequestGet(string url, Dictionary<string, string> Headerdics, WebHeaderCollection heard, ref CookieContainer cookieContainers, ref string redirecturl)
 		{
 			ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Ssl3 | SecurityProtocolType.Tls | SecurityProtocolType.Tls11;
-			ServicePointManager.ServerCertificateValidationCallback = (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) =>
-			{
-				return true;
-			};
-
+			ServicePointManager.ServerCertificateValidationCallback = (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) =>	{return true;};
 			//Dim domain = CStr(Regex.Match(url, "^(?:\w+://)?([^/?]*)").Groups(1).Value)
-
 			//If domain.Contains("www.") = True Then
 			//    domain = domain.Replace("www.", "")
 			//Else
@@ -180,12 +226,10 @@ namespace Statistics
 			HttpWebRequest myRequest = (HttpWebRequest)WebRequest.Create(url);
 			myRequest.Headers = heard;
 			myRequest.Method = "GET";
-			//myRequest.KeepAlive = True
-			myRequest.Accept = headeraccept;
-			myRequest.ContentType = contentype;
-			myRequest.Referer = referer;
-			myRequest.AllowAutoRedirect = false;
-			myRequest.UserAgent = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 UBrowser/6.2.4098.3 Safari/537.36";
+			foreach (var pair in Headerdics)
+			{
+				typeof(HttpWebRequest).GetProperty(pair.Key).SetValue(myRequest, pair.Value, null);
+			}
 			myRequest.CookieContainer = cookieContainers;
 			string results = "";
 
@@ -230,27 +274,21 @@ namespace Statistics
 				}
 
 			}
-			catch (Exception exp)
+			catch (Exception ex)
 			{
-				Debug.WriteLine(exp.ToString());
+				Debug.WriteLine(ex.Message.ToString());
 			}
-			redirecturl = redirecturl;
 			return results;
 		}
-		public static string RequestPost(string url, string headeraccept, string contentype, string referer, WebHeaderCollection heard, string postdata, ref CookieContainer cookieContainers, ref WebHeaderCollection myWebHeaderCollection, ref string redirecturl)
+		public static string RequestPost(string url, Dictionary<string, string> Headerdics, WebHeaderCollection heard, string postdata, ref CookieContainer cookieContainers, ref WebHeaderCollection ResponseHeaders, ref string redirecturl)
 		{
 			if (string.IsNullOrEmpty(url))
 			{
 				return "";
 			}
 			ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Ssl3 | SecurityProtocolType.Tls | SecurityProtocolType.Tls11;
-			ServicePointManager.ServerCertificateValidationCallback = (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) =>
-			{
-				return true;
-			};
-
+			ServicePointManager.ServerCertificateValidationCallback = (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) =>{return true;};
 			//Dim domain = CStr(Regex.Match(url, "^(?:\w+://)?([^/?]*)").Groups(1).Value)
-
 			//If domain.Contains("www.") = True Then
 			//    domain = domain.Replace("www.", "")
 			//Else
@@ -259,21 +297,15 @@ namespace Statistics
 			string results = "";
 			try
 			{
-
 				var myRequest = (HttpWebRequest)WebRequest.Create(url);
 				var data = Encoding.UTF8.GetBytes(postdata);
 				myRequest.Headers = heard;
 				myRequest.Method = "POST";
-				//myRequest.KeepAlive = True
-				myRequest.Accept = headeraccept;
-				myRequest.ContentType = contentype;
-				myRequest.Referer = referer;
-				myRequest.AllowAutoRedirect = false;
-				//myRequest.Headers.Add("Upgrade-Insecure-szRequests", "1")
-				myRequest.Headers.Add("Cache-Control", "max-age=0");
-				myRequest.UserAgent = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 UBrowser/6.2.4098.3 Safari/537.36";
-				//myRequest.CookieContainer = cookieContainers
-				myRequest.Headers.Add(HttpRequestHeader.Cookie, "os=pc;osver=Microsoft-Windows-10-Professional-build-16299.125-64bit;appver=2.0.3.131777;channel=netease;__remember_me=true");
+				foreach (var pair in Headerdics)
+				{
+					typeof(HttpWebRequest).GetProperty(pair.Key).SetValue(myRequest, pair.Value, null);
+				}
+				myRequest.CookieContainer = cookieContainers;
 				myRequest.ContentLength = data.Length;
 				using (var stream = myRequest.GetRequestStream())
 				{
@@ -316,15 +348,13 @@ namespace Statistics
 					{
 						redirecturl = myResponse.Headers["Location"];
 					}
-					myWebHeaderCollection = myResponse.Headers;
+					ResponseHeaders = myResponse.Headers;
 				}
-
 			}
-			catch (Exception exp)
+			catch (Exception ex)
 			{
-				Debug.WriteLine(exp.ToString());
+				Debug.WriteLine(ex.Message.ToString());
 			}
-
 			return results;
 		}
 
