@@ -211,6 +211,15 @@ namespace Statistics
 
 			return cc;
 		}
+		/// <summary>
+		/// Http请求
+		/// </summary>
+		/// <param name="url">请求网址</param>
+		/// <param name="Headerdics">头文件固定KEY值字典类型泛型集合</param>
+		/// <param name="heard">头文件集合</param>
+		/// <param name="cookieContainers">cookie容器</param>
+		/// <param name="redirecturl">头文件中的跳转链接</param>
+		/// <returns>返回请求字符串结果</returns>
 		public static string RequestGet(string url, Dictionary<string, string> Headerdics, WebHeaderCollection heard, ref CookieContainer cookieContainers, ref string redirecturl)
 		{
 			ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Ssl3 | SecurityProtocolType.Tls | SecurityProtocolType.Tls11;
@@ -282,6 +291,16 @@ namespace Statistics
 			}
 			return results;
 		}
+		/// <summary>
+		/// Http响应
+		/// </summary>
+		/// <param name="url">请求网址</param>
+		/// <param name="Headerdics">头文件固定KEY值字典类型泛型集合</param>
+		/// <param name="heard">头文件集合</param>
+		/// <param name="postdata">提交的字符串型数据</param>
+		/// <param name="cookieContainers">cookie容器</param>
+		/// <param name="redirecturl">头文件中的跳转链接</param>
+		/// <returns>返回响应字符串结果</returns>
 		public static string RequestPost(string url, Dictionary<string, string> Headerdics, WebHeaderCollection heard, string postdata, ref CookieContainer cookieContainers, ref WebHeaderCollection ResponseHeaders, ref string redirecturl)
 		{
 			if (string.IsNullOrEmpty(url))
