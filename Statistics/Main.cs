@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web;
 using System.Web.Script.Serialization;
 
 namespace Statistics
@@ -36,65 +37,95 @@ namespace Statistics
 			{
 				if (sMsg.MessageContent=="谁是龙王")
 				{
+
 					string dragon = string.Empty;
-					IntPtr SKey = API.GetSKey(PInvoke.plugin_key, sMsg.ThisQQ);
-					IntPtr PSKey = API.GetPSKey(PInvoke.plugin_key, sMsg.ThisQQ, "qun.qq.com");
-					CookieContainer mycookiecontainer = new CookieContainer();
-					mycookiecontainer.Add(new Cookie("uin", sMsg.ThisQQ.ToString()) { Domain = "qun.qq.com" });
-					mycookiecontainer.Add(new Cookie("skey", Marshal.PtrToStringAnsi(SKey)) { Domain = "qun.qq.com" });
-					mycookiecontainer.Add(new Cookie("pskey", Marshal.PtrToStringAnsi(PSKey)) { Domain = "qun.qq.com" });
-					WebHeaderCollection myWebHeaderCollection = new WebHeaderCollection();
-					var redirect_geturl = string.Empty;
-					var head1 = new WebHeaderCollection()
-		            {
-		              	{"Pragma: no-cache"},
-		            	{"DNT:1"},
-		               	{"Upgrade-Insecure-Requests:1"}
-	             	};
-					Dictionary<string, string> Headerdics = new Dictionary<string, string>()
+					//方法一：通过API获取cookie
+					//IntPtr SKey = API.GetSKey(PInvoke.plugin_key, sMsg.ThisQQ);
+					//IntPtr PSKey = API.GetPSKey(PInvoke.plugin_key, sMsg.ThisQQ, "qun.qq.com");					
+					//CookieContainer mycookiecontainer = new CookieContainer();
+					//mycookiecontainer.Add(new Cookie("uin", sMsg.ThisQQ.ToString()) { Domain = "qun.qq.com" });
+					//mycookiecontainer.Add(new Cookie("skey", Marshal.PtrToStringAnsi(SKey)) { Domain = "qun.qq.com" });
+					//mycookiecontainer.Add(new Cookie("pskey", Marshal.PtrToStringAnsi(PSKey)) { Domain = "qun.qq.com" });
+					//WebHeaderCollection myWebHeaderCollection = new WebHeaderCollection();
+
+					//方法二：通过httqrequest获取cookie
+					IntPtr clientkey = API.GetClientKey(PInvoke.plugin_key, sMsg.ThisQQ);
+					CookieContainer mycookiecontainer = GetCookie(Marshal.PtrToStringAnsi(clientkey), "https://h5.qzone.qq.com/mqzone/index", sMsg.ThisQQ.ToString(), "549000929","5");
+  
+                    var redirect_geturl = string.Empty;
+                    var head1 = new WebHeaderCollection()
                     {
-						{"Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3"},
-	   			    	{"ContentType", "application/json, text/plain, */*"},
-	   			    	{"Referer", "qun.qq.com"},
-	   				    {"Host", "qun.qq.com"},
-	   			    	{"UserAgent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 UBrowser/6.2.4098.3 Safari/537.36"}
-   				    };
-					string url = "https://qun.qq.com/interactive/honorlist?gc=" + sMsg.MessageGroupQQ.ToString()+"&type=1";
-					var Res = HttpHelper.RequestGet(url, Headerdics, head1,ref mycookiecontainer,ref redirect_geturl);
-					if (Res != "")
+                        {"Pragma: no-cache"},
+                        {"DNT:1"},
+                        {"Upgrade-Insecure-Requests:1"}
+                     };
+                    Dictionary<string, string> Headerdics = new Dictionary<string, string>()
+                    {
+                        {"Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3"},
+                        {"ContentType", "application/json, text/plain, */*"},
+                        {"Referer", "qun.qq.com"},
+                        {"Host", "qun.qq.com"},
+                        {"UserAgent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 UBrowser/6.2.4098.3 Safari/537.36"}
+                    };
+                    string url = "https://qun.qq.com/interactive/honorlist?gc=" + sMsg.MessageGroupQQ.ToString() + "&type=1";
+                    var Res = HttpHelper.RequestGet(url, Headerdics, head1,mycookiecontainer, ref redirect_geturl);
+                    if (Res != "")
                     {
                         MatchCollection match1 = Regex.Matches(Res, @"\{(?:[^\{\}]|(?<o>\{)|(?<-o>\}))+(?(o)(?!))\}", RegexOptions.Multiline | RegexOptions.IgnoreCase);
                         foreach (Match match in match1)
                         {
                             try
                             {
-								dynamic token  = new JavaScriptSerializer().DeserializeObject(match.Value);
-                                if (token["gc"] != null  && (string)token["gc"]== sMsg.MessageGroupQQ.ToString())
+                                dynamic token = new JavaScriptSerializer().DeserializeObject(match.Value);
+                                if (token["gc"] != null && (string)token["gc"] == sMsg.MessageGroupQQ.ToString())
                                 {
-									dragon = token["talkativeList"][0]["uin"];
-								}
-                                
+                                    dragon = token["talkativeList"][0]["uin"];
+                                }
+
                             }
                             catch (Exception e)
                             {
-								Debug.WriteLine(e.Message.ToString());
+                                Debug.WriteLine(e.Message.ToString());
                             }
                         }
                     }
-					if (dragon ==string.Empty)
+                    if (dragon == string.Empty)
                     {
-						API.SendGroupMsg(PInvoke.plugin_key, sMsg.ThisQQ, sMsg.MessageGroupQQ, "[@" + sMsg.SenderQQ.ToString() + "]" + Environment.NewLine + "没有龙王.", false);
-					}
-					else
+                        API.SendGroupMsg(PInvoke.plugin_key, sMsg.ThisQQ, sMsg.MessageGroupQQ, "[@" + sMsg.SenderQQ.ToString() + "]" + Environment.NewLine + "没有龙王.", false);
+                    }
+                    else
                     {
-						API.SendGroupMsg(PInvoke.plugin_key, sMsg.ThisQQ, sMsg.MessageGroupQQ, "[@" + dragon + "]" + Environment.NewLine+ "你是本群龙王.", false);
-					}
-				}
+                        API.SendGroupMsg(PInvoke.plugin_key, sMsg.ThisQQ, sMsg.MessageGroupQQ, "[@" + dragon + "]" + Environment.NewLine + "你是本群龙王.", false);
+                    }
+                }
 
 			}
 			return 0;
 		}
 		#endregion
+
+	 static CookieContainer GetCookie(string clientkey,string jumpurl,string uin,string appid,string daid)
+        {
+			CookieContainer mycookiecontainer = new CookieContainer();
+			WebHeaderCollection myWebHeaderCollection = new WebHeaderCollection();
+			var redirect_geturl = string.Empty;
+			var head1 = new WebHeaderCollection();
+			Dictionary<string, string> Headerdics = new Dictionary<string, string>()
+			{
+			    {"Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3"},
+			    {"ContentType", "application/json, text/plain, */*"},
+			    {"UserAgent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 UBrowser/6.2.4098.3 Safari/537.36"}
+			};
+			string url = "https://ui.ptlogin2.qq.com/cgi-bin/login?pt_hide_ad=1&style=9&appid=" + appid + "&pt_no_auth=1&pt_wxtest=1&daid= " + daid + " & s_url= " + HttpUtility.UrlDecode(jumpurl);
+			var Res = HttpHelper.RequestGet(url, Headerdics, head1,  mycookiecontainer, ref redirect_geturl);
+			url = "https://ssl.ptlogin2.qq.com/jump?u1=" + HttpUtility.UrlDecode(jumpurl) + "&pt_report=1&daid=" + daid + "&style=9&keyindex=19&clientuin=" + uin + "&clientkey=" + clientkey;
+			Res = HttpHelper.RequestGet(url, Headerdics, head1,  mycookiecontainer, ref redirect_geturl);
+			if (Res != "")
+			{
+				return mycookiecontainer;
+			};
+			return mycookiecontainer;
+		}
 	}
 
 }

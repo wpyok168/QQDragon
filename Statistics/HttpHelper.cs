@@ -220,7 +220,7 @@ namespace Statistics
 		/// <param name="cookieContainers">cookie容器</param>
 		/// <param name="redirecturl">头文件中的跳转链接</param>
 		/// <returns>返回请求字符串结果</returns>
-		public static string RequestGet(string url, Dictionary<string, string> Headerdics, WebHeaderCollection heard, ref CookieContainer cookieContainers, ref string redirecturl)
+		public static string RequestGet(string url, Dictionary<string, string> Headerdics, WebHeaderCollection heard, CookieContainer cookieContainers, ref string redirecturl)
 		{
 			ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Ssl3 | SecurityProtocolType.Tls | SecurityProtocolType.Tls11;
 			ServicePointManager.ServerCertificateValidationCallback = (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) =>	{return true;};
@@ -301,7 +301,7 @@ namespace Statistics
 		/// <param name="cookieContainers">cookie容器</param>
 		/// <param name="redirecturl">头文件中的跳转链接</param>
 		/// <returns>返回响应字符串结果</returns>
-		public static string RequestPost(string url, Dictionary<string, string> Headerdics, WebHeaderCollection heard, string postdata, ref CookieContainer cookieContainers, ref WebHeaderCollection ResponseHeaders, ref string redirecturl)
+		public static string RequestPost(string url, Dictionary<string, string> Headerdics, WebHeaderCollection heard, string postdata, CookieContainer cookieContainers, ref WebHeaderCollection ResponseHeaders, ref string redirecturl)
 		{
 			if (string.IsNullOrEmpty(url))
 			{
