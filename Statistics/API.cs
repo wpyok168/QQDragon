@@ -139,27 +139,27 @@ namespace Statistics
 			{
 				dynamic root = new JavaScriptSerializer().Deserialize<Dictionary<string, Dictionary<string, object>>>(RetJson);
 				var QQlist = root[root.Keys[0]];
-				for (var i = 0; i <= root.Count; i++)
-				{
-					if (QQlist.Keys[i] == "12345") //控制插件被滥用,如果不是该QQ号码登录就禁用发送信息功能
-					{
-						PInvoke.RobotQQ = QQlist.Keys[i];
-						PInvoke.PluginStatus = true;
-						return RetJson;
-					}
-					else if (QQlist.Keys[i] != "2222222")
-					{
-						PInvoke.RobotQQ = QQlist.Keys[i];
-						PInvoke.PluginStatus = true;
-						return RetJson;
-					}
-					else if (QQlist.Keys[i] != "33333")
-					{
-						PInvoke.RobotQQ = QQlist.Keys[i];
-						PInvoke.PluginStatus = true;
-						return RetJson;
-					}
-				}
+				//for (var i = 0; i <= root.Count; i++)
+				//{
+				//	if (QQlist.Keys[i] == "12345") //控制插件被滥用,如果不是该QQ号码登录就禁用发送信息功能
+				//	{
+				//		PInvoke.RobotQQ = QQlist.Keys[i];
+				//		PInvoke.PluginStatus = true;
+				//		return RetJson;
+				//	}
+				//	else if (QQlist.Keys[i] != "2222222")
+				//	{
+				//		PInvoke.RobotQQ = QQlist.Keys[i];
+				//		PInvoke.PluginStatus = true;
+				//		return RetJson;
+				//	}
+				//	else if (QQlist.Keys[i] != "33333")
+				//	{
+				//		PInvoke.RobotQQ = QQlist.Keys[i];
+				//		PInvoke.PluginStatus = true;
+				//		return RetJson;
+				//	}
+				//}
 			}
 			catch (Exception ex)
 			{
@@ -188,7 +188,7 @@ namespace Statistics
 			{
 				case PInvoke.EventTypeEnum.This_SignInSuccess:
 					Console.WriteLine("登录成功");
-					PInvoke.RobotQQ = EvenType.ThisQQ;							
+					//PInvoke.RobotQQ = EvenType.ThisQQ;							
 					break;
 				case PInvoke.EventTypeEnum.Friend_NewFriend:
 					Console.WriteLine("有新好友");

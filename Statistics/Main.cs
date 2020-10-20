@@ -37,10 +37,10 @@ namespace Statistics
 				if (sMsg.MessageContent=="谁是龙王")
 				{
 					string dragon = string.Empty;
-					IntPtr SKey = API.GetSKey(PInvoke.plugin_key, PInvoke.RobotQQ);
-					IntPtr PSKey = API.GetPSKey(PInvoke.plugin_key, PInvoke.RobotQQ, "qun.qq.com");
+					IntPtr SKey = API.GetSKey(PInvoke.plugin_key, sMsg.ThisQQ);
+					IntPtr PSKey = API.GetPSKey(PInvoke.plugin_key, sMsg.ThisQQ, "qun.qq.com");
 					CookieContainer mycookiecontainer = new CookieContainer();
-					mycookiecontainer.Add(new Cookie("uin", PInvoke.RobotQQ.ToString()) { Domain = "qun.qq.com" });
+					mycookiecontainer.Add(new Cookie("uin", sMsg.ThisQQ.ToString()) { Domain = "qun.qq.com" });
 					mycookiecontainer.Add(new Cookie("skey", Marshal.PtrToStringAnsi(SKey)) { Domain = "qun.qq.com" });
 					mycookiecontainer.Add(new Cookie("pskey", Marshal.PtrToStringAnsi(PSKey)) { Domain = "qun.qq.com" });
 					WebHeaderCollection myWebHeaderCollection = new WebHeaderCollection();
