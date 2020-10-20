@@ -20,7 +20,7 @@ namespace Statistics
 	{
 		public static Dictionary<long, Tuple<long, string, long, uint>> EventDics = new Dictionary<long, Tuple<long, string, long, uint>>();
 		public static bool MsgRecod=false;
-		public static long MyQQ = 0;
+		//public static long MyQQ = 0;
 
 		#region 导出函数给框架并取到两个参数值
 		[DllExport(CallingConvention = CallingConvention.StdCall)]

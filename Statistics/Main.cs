@@ -51,8 +51,16 @@ namespace Statistics
 		            	{"DNT:1"},
 		               	{"Upgrade-Insecure-Requests:1"}
 	             	};
+					Dictionary<string, string> Headerdics = new Dictionary<string, string>()
+                    {
+						{"Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3"},
+	   			    	{"ContentType", "application/json, text/plain, */*"},
+	   			    	{"Referer", "qun.qq.com"},
+	   				    {"Host", "qun.qq.com"},
+	   			    	{"UserAgent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 UBrowser/6.2.4098.3 Safari/537.36"}
+   				    };
 					string url = "https://qun.qq.com/interactive/honorlist?gc=" + sMsg.MessageGroupQQ.ToString()+"&type=1";
-					var Res = HttpHelper.RequestGet(url, "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3", "application/json, text/plain, */*", "qun.qq.com", head1,ref mycookiecontainer,ref redirect_geturl);
+					var Res = HttpHelper.RequestGet(url, Headerdics, head1,ref mycookiecontainer,ref redirect_geturl);
 					if (Res != "")
                     {
                         MatchCollection match1 = Regex.Matches(Res, @"\{(?:[^\{\}]|(?<o>\{)|(?<-o>\}))+(?(o)(?!))\}", RegexOptions.Multiline | RegexOptions.IgnoreCase);
