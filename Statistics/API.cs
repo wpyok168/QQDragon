@@ -545,6 +545,9 @@ namespace Statistics
 			GetSKeyDelegate GetSKeyAPI = (GetSKeyDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["获取skey"]), typeof(GetSKeyDelegate));
 			GetSKey = GetSKeyAPI;
 			GC.KeepAlive(GetSKey);
+			GetCookieDelegate GetCookieAPI = (GetCookieDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["登录网页取ck"]), typeof(GetCookieDelegate));
+			GetCookie = GetCookieAPI;
+			GC.KeepAlive(GetCookie);
 		}
 		#endregion
 		#region 函数委托指针
@@ -862,7 +865,10 @@ namespace Statistics
 		// 修改群名称
 		public delegate IntPtr GetGroupMemberBriefInfo(string pkey, long thisQQ, long GroupQQ, ref PInvoke.GMBriefDataList[] gMBriefDataLists);
 		public delegate bool UpdataGroupName(string pkey, long thisQQ, long GroupQQ, [MarshalAs(UnmanagedType.LPStr)] string NewGroupName);
-
+		// 登录网页取ck
+		public static GetCookieDelegate GetCookie = null;
+		[UnmanagedFunctionPointer(CallingConvention.Winapi, CharSet = CharSet.Ansi)]
+		public delegate bool GetCookieDelegate(string pkey, long thisQQ, [MarshalAs(UnmanagedType.LPStr)] string jmpurl, [MarshalAs(UnmanagedType.LPStr)] string appid, [MarshalAs(UnmanagedType.LPStr)] string daid, [MarshalAs(UnmanagedType.LPStr)]ref string cookie);
 		#endregion
 
 		#region 全局异常
