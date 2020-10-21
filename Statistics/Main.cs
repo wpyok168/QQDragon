@@ -112,28 +112,28 @@ namespace Statistics
 		}
 		#endregion
 
-	static CookieContainer GetQQZoneCookie(long thisqq)
-        {
-			CookieContainer mycookiecontainer = new CookieContainer();
-			WebHeaderCollection myWebHeaderCollection = new WebHeaderCollection();
-			var redirect_geturl = string.Empty;
-			var head1 = new WebHeaderCollection();
-			Dictionary<string, string> Headerdics = new Dictionary<string, string>()
-			{
-			    {"Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3"},
-			    {"ContentType", "application/json, text/plain, */*"},
-			    {"UserAgent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 UBrowser/6.2.4098.3 Safari/537.36"}
-			};
-			string url = "https://ui.ptlogin2.qq.com/cgi-bin/login?pt_hide_ad=1&style=9&appid=549000929&pt_no_auth=1&pt_wxtest=1&daid=5& s_url= " + HttpUtility.UrlDecode("https://h5.qzone.qq.com/mqzone/index");
-			var Res = HttpHelper.RequestGet(url, Headerdics, head1,  mycookiecontainer, ref redirect_geturl);
-			url = "https://ssl.ptlogin2.qq.com/jump?u1=" + HttpUtility.UrlDecode("https://h5.qzone.qq.com/mqzone/index") + "&pt_report=1&daid=5&style=9&keyindex=19&clientuin=" + thisqq.ToString() + "&clientkey=" +  API.GetClientKey(PInvoke.plugin_key, thisqq); ;
-			Res = HttpHelper.RequestGet(url, Headerdics, head1,  mycookiecontainer, ref redirect_geturl);
-			if (Res != "")
-			{
-				return mycookiecontainer;
-			};
-			return mycookiecontainer;
-		}
+	//static CookieContainer GetQQZoneCookie(long thisqq)
+    //     {
+	//		CookieContainer mycookiecontainer = new CookieContainer();
+	//		WebHeaderCollection myWebHeaderCollection = new WebHeaderCollection();
+	//		var redirect_geturl = string.Empty;
+	//		var head1 = new WebHeaderCollection();
+	//		Dictionary<string, string> Headerdics = new Dictionary<string, string>()
+	//		{
+	//		    {"Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3"},
+	//		    {"ContentType", "application/json, text/plain, */*"},
+	//		    {"UserAgent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 UBrowser/6.2.4098.3 Safari/537.36"}
+	//		};
+	//		string url = "https://ui.ptlogin2.qq.com/cgi-bin/login?pt_hide_ad=1&style=9&appid=549000929&pt_no_auth=1&pt_wxtest=1&daid=5& s_url= " + HttpUtility.UrlDecode("https://h5.qzone.qq.com/mqzone/index");
+	//		var Res = HttpHelper.RequestGet(url, Headerdics, head1,  mycookiecontainer, ref redirect_geturl);
+	//		url = "https://ssl.ptlogin2.qq.com/jump?u1=" + HttpUtility.UrlDecode("https://h5.qzone.qq.com/mqzone/index") + "&pt_report=1&daid=5&style=9&keyindex=19&clientuin=" + thisqq.ToString() + "&clientkey=" +  API.GetClientKey(PInvoke.plugin_key, thisqq); ;
+	//		Res = HttpHelper.RequestGet(url, Headerdics, head1,  mycookiecontainer, ref redirect_geturl);
+	//		if (Res != "")
+	//		{
+	//			return mycookiecontainer;
+	//		};
+	//		return mycookiecontainer;
+	//	}
 
 		static CookieContainer GetQQGroupCookie(long thisqq,long groupid)
 		{
@@ -177,24 +177,24 @@ namespace Statistics
 		/// 計算gtk
 		/// </summary>
 		/// <returns></returns>
-		public static Int32 GetGTK(List<Cookie> cookies)
-		{
-			int gtk = 0;
-			foreach (var item in cookies)
-			{
-				if (item.Name == "skey")
-				{
-					int hash = 5381;
-					string str = item.Value;
-					for (int i = 0, len = str.Length; i < len; ++i)
-					{
-						hash += (hash << 5) + str.ElementAt(i);
-					}
-					gtk = hash & 0x7fffffff;
-				}
-			}
-			return gtk;
-		}
+		//public static Int32 GetGTK(List<Cookie> cookies)
+		//{
+		//	int gtk = 0;
+		//	foreach (var item in cookies)
+		//	{
+		//		if (item.Name == "skey")
+		//		{
+		//			int hash = 5381;
+		//			string str = item.Value;
+		//			for (int i = 0, len = str.Length; i < len; ++i)
+		//			{
+		//				hash += (hash << 5) + str.ElementAt(i);
+		//			}
+		//			gtk = hash & 0x7fffffff;
+		//		}
+		//	}
+		//	return gtk;
+		//}
 		private static string CharAt(string s, int index)
 		{
 			if ((index >= s.Length) || (index < 0))

@@ -213,7 +213,7 @@ namespace Statistics
 		}
 
 		/// <summary>
-		/// 遍歷CookieContainer
+		/// 遍历CookieContainer
 		/// </summary>
 		/// <param name="cc"></param>
 		/// <returns></returns>
