@@ -306,9 +306,30 @@ namespace Statistics
 				}
 
 			}
+			catch (WebException e)
+			{
+				using (WebResponse response = e.Response)
+				{
+					HttpWebResponse httpResponse = (HttpWebResponse)response;
+					Console.WriteLine("Error code: {0}", httpResponse.StatusCode);
+					using (Stream data = response.GetResponseStream())
+					using (var reader = new StreamReader(data))
+					{
+						results = reader.ReadToEnd();
+					}
+				}
+			}
 			catch (Exception ex)
 			{
-				Debug.WriteLine(ex.Message.ToString());
+				if (ex.InnerException != null)
+				{
+					Console.WriteLine(ex.GetBaseException().Message.ToString());
+				}
+				else
+				{
+					Debug.Print(ex.Message.ToString());
+				}
+
 			}
 			return results;
 		}
@@ -393,9 +414,29 @@ namespace Statistics
 					ResponseHeaders = myResponse.Headers;
 				}
 			}
+			catch (WebException e)
+			{
+				using (WebResponse response = e.Response)
+				{
+					HttpWebResponse httpResponse = (HttpWebResponse)response;
+					Console.WriteLine("Error code: {0}", httpResponse.StatusCode);
+					using (Stream data = response.GetResponseStream())
+					using (var reader = new StreamReader(data))
+					{
+						results = reader.ReadToEnd();
+					}
+				}
+			}
 			catch (Exception ex)
 			{
-				Debug.WriteLine(ex.Message.ToString());
+				if (ex.InnerException != null)
+				{
+					Console.WriteLine(ex.GetBaseException().Message.ToString());
+				}
+				else
+				{
+					Debug.Print(ex.Message.ToString());
+				}
 			}
 			return results;
 		}
