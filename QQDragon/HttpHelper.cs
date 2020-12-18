@@ -13,7 +13,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Statistics
+namespace QQDragon
 {
 	public static class HttpHelper
     {

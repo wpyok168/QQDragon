@@ -14,7 +14,7 @@ using System.Windows.Forms;
 
 
 
-namespace Statistics
+namespace QQDragon
 {
 	public class API
 	{
@@ -28,34 +28,20 @@ namespace Statistics
 		{
 			PInvoke.jsonstr = apidata;
 			PInvoke.plugin_key = pluginkey;
-			string json = "";
-			Dictionary<string, string> JosnDict = new JavaScriptSerializer().Deserialize<Dictionary<string, string>>(apidata);
+
+			var json = "";
+			Dictionary<string, string> JosnDict = (new JavaScriptSerializer()).Deserialize<Dictionary<string, string>>(apidata);
 			foreach (KeyValuePair<string, string> KeyList in JosnDict)
 			{
-				json= AddPermission(KeyList.Key, json);
+				json = AddPermission(KeyList.Key, json);
 			}
-			//如果要指定权限:	
-			//json = AddPermission("输出日志", json);
-			//json = AddPermission("发送好友消息", json);
-			//json = AddPermission("查询好友信息", json);
-			//json = AddPermission("查询群信息", json);
-			//json = AddPermission("发送群消息", json);
-			//json = AddPermission("取图片下载地址", json);
-			//json = AddPermission("取好友列表", json);
-			//json = AddPermission("取群成员列表", json);
-			//json = AddPermission("取群列表", json);
-			//json = AddPermission("取框架QQ", json);
-			//json = AddPermission("处理好友验证事件", json);
-			//json = AddPermission("处理群验证事件", json);
-			//json = AddPermission("撤回消息_群聊", json);
-			//json = AddPermission("撤回消息_私聊本身", json);
-			//json = AddPermission("取管理列表", json);
-			object jsonkey = new JavaScriptSerializer().DeserializeObject(json);
-			string resultJson = new JavaScriptSerializer().Serialize(new { needapilist = jsonkey });
+			object jsonkey = (new JavaScriptSerializer()).DeserializeObject(json);
+			string resultJson = (new JavaScriptSerializer()).Serialize(new { needapilist = jsonkey });
 
 			var App_Info = new PInvoke.AppInfo();
-			App_Info.data = new JavaScriptSerializer().Deserialize<Object>(resultJson);
-			App_Info.sdkv = "2.7.5";
+			App_Info.data = (new JavaScriptSerializer()).Deserialize<object>(resultJson);
+
+			App_Info.sdkv = "2.8.7.5";
 			App_Info.appname = "谁是龙王";
 			App_Info.author = "网中行";
 			App_Info.describe = "谁是龙王";
@@ -73,24 +59,44 @@ namespace Statistics
 			GC.KeepAlive(Main.funRecviceGroupMsg);
 			App_Info.groupmsaddres = Marshal.GetFunctionPointerForDelegate(Main.funRecviceGroupMsg).ToInt64();
 			GC.KeepAlive(funEvent);
-			App_Info.eventmsaddres = Marshal.GetFunctionPointerForDelegate(funEvent).ToInt64();
-			string res= new JavaScriptSerializer().Serialize(App_Info);
-			return Marshal.StringToHGlobalAnsi(res);
+			App_Info.banproaddres = Marshal.GetFunctionPointerForDelegate(AppDisabledEvent).ToInt64();
+			string jsonstring = (new JavaScriptSerializer()).Serialize(App_Info);
+			return Marshal.StringToHGlobalAnsi(jsonstring);
+
 		}
 		public static string AddPermission(string desc, string json)
 		{
-			var Permission = new PInvoke.MyData
+			var jsonstring = "";
+			string SensitivePermissions = "QQ点赞|获取clientkey|获取pskey|获取skey|解散群|删除好友|退群|置屏蔽好友|修改个性签名|修改昵称|上传头像|框架重启|取QQ钱包个人信息|更改群聊消息内容|更改私聊消息内容";
+			if (SensitivePermissions.Contains(desc))
 			{
-				PermissionList = new PInvoke.Needapilist
+				var Permission = new PInvoke.MyData
 				{
-					state = "1",
-					safe = "1",
-					desc = desc
-				}
-			};
-			JavaScriptSerializer serializer = new JavaScriptSerializer();
-			var jsonstring = serializer.Serialize(Permission).Replace("PermissionList", desc);
-			if (string.IsNullOrEmpty(json))
+					PermissionList = new PInvoke.Needapilist
+					{
+						state = "0",
+						safe = "0",
+						desc = desc
+					}
+				};
+				JavaScriptSerializer serializer = new JavaScriptSerializer();
+				jsonstring = serializer.Serialize(Permission).Replace("PermissionList", desc);
+			}
+			else
+			{
+				var Permission = new PInvoke.MyData
+				{
+					PermissionList = new PInvoke.Needapilist
+					{
+						state = "1",
+						safe = "1",
+						desc = desc
+					}
+				};
+				JavaScriptSerializer serializer = new JavaScriptSerializer();
+				jsonstring = serializer.Serialize(Permission).Replace("PermissionList", desc);
+			}
+			if (json == "")
 			{
 				return jsonstring;
 			}
@@ -411,11 +417,70 @@ namespace Statistics
 			if (GetGroupInfo(PInvoke.plugin_key, thisQQ, otherGroupQQ, ref pGroupInfo))
 			{
 				PInvoke.GroupCardInfo groupinfo = pGroupInfo[0].groupCardInfo;
-				return "该群信息: " + Environment.NewLine + "群名称: " + groupinfo.GroupName + Environment.NewLine + "群介绍: " + groupinfo.GroupDescription ;
+				return "该群信息: " + Environment.NewLine + "群名称: " + groupinfo.GroupName + Environment.NewLine + "群介绍: " + groupinfo.GroupDescription;
 			}
 			return res;
 		}
-		#endregion			
+		#endregion
+		#region 取群成员简略信息
+		public static PInvoke.GroupMemberBriefInfo GetGroupMemberBriefInfoEvent(long thisQQ, long GroupQQ)
+		{
+			PInvoke.GMBriefDataList[] gMBriefDataLists = new PInvoke.GMBriefDataList[2];
+			string ret = Marshal.PtrToStringAnsi(GetGroupMemberBriefInfo(PInvoke.plugin_key, thisQQ, GroupQQ, ref gMBriefDataLists));
+			PInvoke.AdminListDataList adminList = (PInvoke.AdminListDataList)Marshal.PtrToStructure(gMBriefDataLists[0].groupMemberBriefInfo.AdminiList, typeof(PInvoke.AdminListDataList));
+			PInvoke.GroupMemberBriefInfo groupMemberBriefInfo = new PInvoke.GroupMemberBriefInfo();
+			groupMemberBriefInfo.GroupMAax = gMBriefDataLists[0].groupMemberBriefInfo.GroupMAax;
+			groupMemberBriefInfo.GroupOwner = gMBriefDataLists[0].groupMemberBriefInfo.GroupOwner;
+			groupMemberBriefInfo.GruoupNum = gMBriefDataLists[0].groupMemberBriefInfo.GruoupNum;
+			return groupMemberBriefInfo;
+		}
+		#endregion
+		#region 取QQ钱包个人信息
+		public static string GetQQWalletPersonalInformationEvent(long thisQQ)
+		{
+			var ptr = Marshal.AllocHGlobal(4);
+			PInvoke.CardInformation CardInfo = new PInvoke.CardInformation();
+			Marshal.StructureToPtr(CardInfo, ptr, false);
+			PInvoke.CardListIntptr[] ptrCardList = new PInvoke.CardListIntptr[1];
+			ptrCardList[0].addr = ptr;
+
+			PInvoke.QQWalletInformation QQWalletInfo = new PInvoke.QQWalletInformation();
+			QQWalletInfo.balance = "";
+			QQWalletInfo.realname = "";
+			QQWalletInfo.id = "";
+			QQWalletInfo.cardlist = ptrCardList;
+
+			PInvoke.QQWalletDataList[] QQWallet = new PInvoke.QQWalletDataList[1];
+			QQWallet[0].QQWalletInfo = QQWalletInfo;
+
+			IntPtr ret = new IntPtr();
+			try
+			{
+				ret = GetQQWalletPersonalInfo(PInvoke.plugin_key, thisQQ, ref QQWallet);
+				Marshal.FreeHGlobal(ptr);
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex.Message.ToString());
+			}
+			PInvoke.DataArray DataList = (PInvoke.DataArray)Marshal.PtrToStructure(QQWallet[0].QQWalletInfo.cardlist[0].addr, typeof(PInvoke.DataArray));
+			List<PInvoke.CardInformation> list = new List<PInvoke.CardInformation>();
+			if (DataList.Amount > 0)
+			{
+				byte[] pAddrBytes = DataList.pAddrList;
+				for (int i = 0; i < DataList.Amount; i++)
+				{
+					byte[] readByte = new byte[4];
+					Array.Copy(pAddrBytes, i * 4, readByte, 0, readByte.Length);
+					IntPtr StuctPtr = new IntPtr(BitConverter.ToInt32(readByte, 0));
+					PInvoke.CardInformation info = (PInvoke.CardInformation)Marshal.PtrToStructure(StuctPtr, typeof(PInvoke.CardInformation));
+					list.Add(info);
+				}
+			}
+			//Return retQQWalletInformation
+			return Marshal.PtrToStringAnsi(ret);
+		}
+		#endregion
 		#region 取群文件列表	
 		public delegate string GetGroupFileLists(string pkey, long thisQQ, long groupQQ, [MarshalAs(UnmanagedType.LPStr)] string folder, ref PInvoke.GroupFileInfoDataList[] groupFileInfoDataLists);
 		public List<PInvoke.GroupFileInformation> GetGroupFileListEvent(long thisQQ, long groupQQ, string folder)
@@ -441,121 +506,123 @@ namespace Statistics
 			return null;
 		}
 		#endregion
+
 		#region 初始化传入的函数指针
 		public static void InitFunction()
 		{
 			//Dictionary<String, int> jsonDic = new JavaScriptSerializer().Deserialize<Dictionary<String, int>> (jsonstr);
-			try
-            {
-				dynamic json = new JavaScriptSerializer().DeserializeObject(PInvoke.jsonstr);
-				RestartDelegate ReStartAPI = (RestartDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["框架重启"]), typeof(RestartDelegate));
-				restart = ReStartAPI;
-				GC.KeepAlive(restart);
-				GetLoginQQDelegate GetLoginQQAPI = (GetLoginQQDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["取框架QQ"]), typeof(GetLoginQQDelegate));
-				GetLoginQQ = GetLoginQQAPI;
-				GC.KeepAlive(GetLoginQQ);
-				SendPrivateMsgDelegate SendPrivateMsgAPI = (SendPrivateMsgDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["发送好友消息"]), typeof(SendPrivateMsgDelegate));
-				SendPrivateMsg = SendPrivateMsgAPI;
-				GC.KeepAlive(SendPrivateMsg);
-				SendGroupMsgDelegate SendGroupMsgAPI = (SendGroupMsgDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["发送群消息"]), typeof(SendGroupMsgDelegate));
-				SendGroupMsg = SendGroupMsgAPI;
-				GC.KeepAlive(SendGroupMsg);
-				FriendverificationEventDelegate FriendverificationEventAPI = (FriendverificationEventDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["处理好友验证事件"]), typeof(FriendverificationEventDelegate));
-				FriendverificationEvent = FriendverificationEventAPI;
-				GC.KeepAlive(FriendverificationEvent);
-				GroupVerificationEventDelegate GroupVerificationEventAPI = (GroupVerificationEventDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["处理群验证事件"]), typeof(GroupVerificationEventDelegate));
-				GroupVerificationEvent = GroupVerificationEventAPI;
-				GC.KeepAlive(GroupVerificationEvent);
-				UploadFriendImageDelegate UploadFriendImageAPI = (UploadFriendImageDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["上传好友图片"]), typeof(UploadFriendImageDelegate));
-				UploadFriendImage = UploadFriendImageAPI;
-				GC.KeepAlive(UploadFriendImage);
-				UploadGroupImageDelegate UploadGroupImageAPI = (UploadGroupImageDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["上传群图片"]), typeof(UploadGroupImageDelegate));
-				UploadGroupImage = UploadGroupImageAPI;
-				GC.KeepAlive(UploadGroupImage);
-				UploadFriendAudioDelegate UploadFriendAudioAPI = (UploadFriendAudioDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["上传好友语音"]), typeof(UploadFriendAudioDelegate));
-				UploadFriendAudio = UploadFriendAudioAPI;
-				GC.KeepAlive(UploadFriendAudio);
-				UploadGroupAudioDelegate UploadGroupAudioAPI = (UploadGroupAudioDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["上传群语音"]), typeof(UploadGroupAudioDelegate));
-				UploadGroupAudio = UploadGroupAudioAPI;
-				GC.KeepAlive(UploadGroupAudio);
-				GetImageDownloadLinkDelegate GetImageDownloadLinkAPI = (GetImageDownloadLinkDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["取图片下载地址"]), typeof(GetImageDownloadLinkDelegate));
-				GetImageDownloadLink = GetImageDownloadLinkAPI;
-				GC.KeepAlive(GetImageDownloadLink);
-				GetFriendListDelegate GetFriendListAPI = (GetFriendListDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["取好友列表"]), typeof(GetFriendListDelegate));
-				GetFriendList = GetFriendListAPI;
-				GC.KeepAlive(GetFriendList);
-				GetFriendInfoDelegate GetFriendInfoAPI = (GetFriendInfoDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["查询好友信息"]), typeof(GetFriendInfoDelegate));
-				GetFriendInfo = GetFriendInfoAPI;
-				GC.KeepAlive(GetFriendInfo);
-				GetGroupMemberlistDelegate GetGroupMemberlistAPI = (GetGroupMemberlistDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["取群成员列表"]), typeof(GetGroupMemberlistDelegate));
-				GetGroupMemberlist = GetGroupMemberlistAPI;
-				GC.KeepAlive(GetGroupMemberlist);
-				GetGroupListDelegate GetGroupListAPI = (GetGroupListDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["取群列表"]), typeof(GetGroupListDelegate));
-				GetGroupList = GetGroupListAPI;
-				GC.KeepAlive(GetGroupList);
-				GetGroupInfoDelegate GetGroupInfoAPI = (GetGroupInfoDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["查询群信息"]), typeof(GetGroupInfoDelegate));
-				GetGroupInfo = GetGroupInfoAPI;
-				GC.KeepAlive(GetGroupInfo);
-				PrivateUndoDelegate UndoPrivateAPI = (PrivateUndoDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["撤回消息_私聊本身"]), typeof(PrivateUndoDelegate));
-				Undo_PrivateEvent = UndoPrivateAPI;
-				GC.KeepAlive(Undo_PrivateEvent);
-				UndoGroupDelegate UndoGroupApi = (UndoGroupDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["撤回消息_群聊"]), typeof(UndoGroupDelegate));
-				Undo_GroupEvent = UndoGroupApi;
-				GC.KeepAlive(Undo_GroupEvent);
-				GetAdministratorListDelegate GetAdministratorListAPI = (GetAdministratorListDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["取管理层列表"]), typeof(GetAdministratorListDelegate));
-				GetAdministratorList = GetAdministratorListAPI;
-				GC.KeepAlive(GetAdministratorList);
-				SendFriendJSONMessageDelegate SendFriendJSONMessageAPI = (SendFriendJSONMessageDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["发送好友json消息"]), typeof(SendFriendJSONMessageDelegate));
-				SendFriendJSONMessage = SendFriendJSONMessageAPI;
-				GC.KeepAlive(SendFriendJSONMessage);
-				SendGroupJSONMessageDelegate SendGroupJSONMessageAPI = (SendGroupJSONMessageDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["发送群json消息"]), typeof(SendGroupJSONMessageDelegate));
-				SendGroupJSONMessage = SendGroupJSONMessageAPI;
-				GC.KeepAlive(SendGroupJSONMessage);
-				SaveFileToWeiYunDelegate SaveFileToWeiYunAPI = (SaveFileToWeiYunDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["保存文件到微云"]), typeof(SaveFileToWeiYunDelegate));
-				SaveFileToWeiYun = SaveFileToWeiYunAPI;
-				GC.KeepAlive(SaveFileToWeiYun);
-				ReadForwardedChatHistoryDelegate ReadForwardedChatHistoryAPI = (ReadForwardedChatHistoryDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["查看转发聊天记录内容"]), typeof(ReadForwardedChatHistoryDelegate));
-				ReadForwardedChatHistory = ReadForwardedChatHistoryAPI;
-				GC.KeepAlive(ReadForwardedChatHistory);
-				UploadGroupFileDelegate UploadGroupFileAPI = (UploadGroupFileDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["上传群文件"]), typeof(UploadGroupFileDelegate));
-				UploadGroupFile = UploadGroupFileAPI;
-				GC.KeepAlive(UploadGroupFile);
-				GetGroupFileListDelegate GetGroupFileListAPI = (GetGroupFileListDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["取群文件列表"]), typeof(GetGroupFileListDelegate));
-				GetGroupFileList = GetGroupFileListAPI;
-				GC.KeepAlive(GetGroupFileList);
-				DeleteGroupMemberDelegate DeleteGroupMemberAPI = (DeleteGroupMemberDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["删除群成员"]), typeof(DeleteGroupMemberDelegate));
-				DeleteGroupMember = DeleteGroupMemberAPI;
-				GC.KeepAlive(DeleteGroupMember);
-				DeleteFriendDelegate DeleteFriendAPI = (DeleteFriendDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["删除好友"]), typeof(DeleteFriendDelegate));
-				DeleteFriend = DeleteFriendAPI;
-				GC.KeepAlive(DeleteFriend);
-				MuteGroupMemberDelegate MuteGroupMemberAPI = (MuteGroupMemberDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["禁言群成员"]), typeof(MuteGroupMemberDelegate));
-				MuteGroupMember = MuteGroupMemberAPI;
-				GC.KeepAlive(MuteGroupMember);
-				MuteGroupAllDelegate MuteGroupAllAPI = (MuteGroupAllDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["全员禁言"]), typeof(MuteGroupAllDelegate));
-				MuteGroupAll = MuteGroupAllAPI;
-				GC.KeepAlive(MuteGroupAll);
-				SetupAdministratorDelegate SetupAdministratorAPI = (SetupAdministratorDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["设置管理员"]), typeof(SetupAdministratorDelegate));
-				SetupAdministrator = SetupAdministratorAPI;
-				GC.KeepAlive(SetupAdministrator);
-				GetClientKeyDelegate GetClientKeyAPI = (GetClientKeyDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["获取clientkey"]), typeof(GetClientKeyDelegate));
-				GetClientKey = GetClientKeyAPI;
-				GC.KeepAlive(GetClientKey);
-				GetPSKeyDelegate GetPSKeyAPI = (GetPSKeyDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["获取pskey"]), typeof(GetPSKeyDelegate));
-				GetPSKey = GetPSKeyAPI;
-				GC.KeepAlive(GetPSKey);
-				GetSKeyDelegate GetSKeyAPI = (GetSKeyDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["获取skey"]), typeof(GetSKeyDelegate));
-				GetSKey = GetSKeyAPI;
-				GC.KeepAlive(GetSKey);
-				//GetCookieDelegate GetCookieAPI = (GetCookieDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["登录网页取ck"]), typeof(GetCookieDelegate));
-				//GetCookie = GetCookieAPI;
-				//GC.KeepAlive(GetCookie);
-			}
-			catch
-            {
-
-            }
-		
+			dynamic json = new JavaScriptSerializer().DeserializeObject(PInvoke.jsonstr);
+			RestartDelegate ReStartAPI = (RestartDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["框架重启"]), typeof(RestartDelegate));
+			restart = ReStartAPI;
+			GC.KeepAlive(restart);
+			GetLoginQQDelegate GetLoginQQAPI = (GetLoginQQDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["取框架QQ"]), typeof(GetLoginQQDelegate));
+			GetLoginQQ = GetLoginQQAPI;
+			GC.KeepAlive(GetLoginQQ);
+			SendPrivateMsgDelegate SendPrivateMsgAPI = (SendPrivateMsgDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["发送好友消息"]), typeof(SendPrivateMsgDelegate));
+			SendPrivateMsg = SendPrivateMsgAPI;
+			GC.KeepAlive(SendPrivateMsg);
+			SendGroupMsgDelegate SendGroupMsgAPI = (SendGroupMsgDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["发送群消息"]), typeof(SendGroupMsgDelegate));
+			SendGroupMsg = SendGroupMsgAPI;
+			GC.KeepAlive(SendGroupMsg);
+			FriendverificationEventDelegate FriendverificationEventAPI = (FriendverificationEventDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["处理好友验证事件"]), typeof(FriendverificationEventDelegate));
+			FriendverificationEvent = FriendverificationEventAPI;
+			GC.KeepAlive(FriendverificationEvent);
+			GroupVerificationEventDelegate GroupVerificationEventAPI = (GroupVerificationEventDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["处理群验证事件"]), typeof(GroupVerificationEventDelegate));
+			GroupVerificationEvent = GroupVerificationEventAPI;
+			GC.KeepAlive(GroupVerificationEvent);
+			UploadFriendImageDelegate UploadFriendImageAPI = (UploadFriendImageDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["上传好友图片"]), typeof(UploadFriendImageDelegate));
+			UploadFriendImage = UploadFriendImageAPI;
+			GC.KeepAlive(UploadFriendImage);
+			UploadGroupImageDelegate UploadGroupImageAPI = (UploadGroupImageDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["上传群图片"]), typeof(UploadGroupImageDelegate));
+			UploadGroupImage = UploadGroupImageAPI;
+			GC.KeepAlive(UploadGroupImage);
+			UploadFriendAudioDelegate UploadFriendAudioAPI = (UploadFriendAudioDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["上传好友语音"]), typeof(UploadFriendAudioDelegate));
+			UploadFriendAudio = UploadFriendAudioAPI;
+			GC.KeepAlive(UploadFriendAudio);
+			UploadGroupAudioDelegate UploadGroupAudioAPI = (UploadGroupAudioDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["上传群语音"]), typeof(UploadGroupAudioDelegate));
+			UploadGroupAudio = UploadGroupAudioAPI;
+			GC.KeepAlive(UploadGroupAudio);
+			GetImageDownloadLinkDelegate GetImageDownloadLinkAPI = (GetImageDownloadLinkDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["取图片下载地址"]), typeof(GetImageDownloadLinkDelegate));
+			GetImageDownloadLink = GetImageDownloadLinkAPI;
+			GC.KeepAlive(GetImageDownloadLink);
+			GetFriendListDelegate GetFriendListAPI = (GetFriendListDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["取好友列表"]), typeof(GetFriendListDelegate));
+			GetFriendList = GetFriendListAPI;
+			GC.KeepAlive(GetFriendList);
+			GetFriendInfoDelegate GetFriendInfoAPI = (GetFriendInfoDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["查询好友信息"]), typeof(GetFriendInfoDelegate));
+			GetFriendInfo = GetFriendInfoAPI;
+			GC.KeepAlive(GetFriendInfo);
+			GetGroupMemberlistDelegate GetGroupMemberlistAPI = (GetGroupMemberlistDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["取群成员列表"]), typeof(GetGroupMemberlistDelegate));
+			GetGroupMemberlist = GetGroupMemberlistAPI;
+			GC.KeepAlive(GetGroupMemberlist);
+			GetGroupListDelegate GetGroupListAPI = (GetGroupListDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["取群列表"]), typeof(GetGroupListDelegate));
+			GetGroupList = GetGroupListAPI;
+			GC.KeepAlive(GetGroupList);
+			GetGroupInfoDelegate GetGroupInfoAPI = (GetGroupInfoDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["查询群信息"]), typeof(GetGroupInfoDelegate));
+			GetGroupInfo = GetGroupInfoAPI;
+			GC.KeepAlive(GetGroupInfo);
+			PrivateUndoDelegate UndoPrivateAPI = (PrivateUndoDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["撤回消息_私聊本身"]), typeof(PrivateUndoDelegate));
+			Undo_PrivateEvent = UndoPrivateAPI;
+			GC.KeepAlive(Undo_PrivateEvent);
+			UndoGroupDelegate UndoGroupApi = (UndoGroupDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["撤回消息_群聊"]), typeof(UndoGroupDelegate));
+			Undo_GroupEvent = UndoGroupApi;
+			GC.KeepAlive(Undo_GroupEvent);
+			GetAdministratorListDelegate GetAdministratorListAPI = (GetAdministratorListDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["取管理层列表"]), typeof(GetAdministratorListDelegate));
+			GetAdministratorList = GetAdministratorListAPI;
+			GC.KeepAlive(GetAdministratorList);
+			SendFriendJSONMessageDelegate SendFriendJSONMessageAPI = (SendFriendJSONMessageDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["发送好友json消息"]), typeof(SendFriendJSONMessageDelegate));
+			SendFriendJSONMessage = SendFriendJSONMessageAPI;
+			GC.KeepAlive(SendFriendJSONMessage);
+			SendGroupJSONMessageDelegate SendGroupJSONMessageAPI = (SendGroupJSONMessageDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["发送群json消息"]), typeof(SendGroupJSONMessageDelegate));
+			SendGroupJSONMessage = SendGroupJSONMessageAPI;
+			GC.KeepAlive(SendGroupJSONMessage);
+			SaveFileToWeiYunDelegate SaveFileToWeiYunAPI = (SaveFileToWeiYunDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["保存文件到微云"]), typeof(SaveFileToWeiYunDelegate));
+			SaveFileToWeiYun = SaveFileToWeiYunAPI;
+			GC.KeepAlive(SaveFileToWeiYun);
+			ReadForwardedChatHistoryDelegate ReadForwardedChatHistoryAPI = (ReadForwardedChatHistoryDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["查看转发聊天记录内容"]), typeof(ReadForwardedChatHistoryDelegate));
+			ReadForwardedChatHistory = ReadForwardedChatHistoryAPI;
+			GC.KeepAlive(ReadForwardedChatHistory);
+			UploadGroupFileDelegate UploadGroupFileAPI = (UploadGroupFileDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["上传群文件"]), typeof(UploadGroupFileDelegate));
+			UploadGroupFile = UploadGroupFileAPI;
+			GC.KeepAlive(UploadGroupFile);
+			GetGroupFileListDelegate GetGroupFileListAPI = (GetGroupFileListDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["取群文件列表"]), typeof(GetGroupFileListDelegate));
+			GetGroupFileList = GetGroupFileListAPI;
+			GC.KeepAlive(GetGroupFileList);
+			DeleteGroupMemberDelegate DeleteGroupMemberAPI = (DeleteGroupMemberDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["删除群成员"]), typeof(DeleteGroupMemberDelegate));
+			DeleteGroupMember = DeleteGroupMemberAPI;
+			GC.KeepAlive(DeleteGroupMember);
+			DeleteFriendDelegate DeleteFriendAPI = (DeleteFriendDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["删除好友"]), typeof(DeleteFriendDelegate));
+			DeleteFriend = DeleteFriendAPI;
+			GC.KeepAlive(DeleteFriend);
+			MuteGroupMemberDelegate MuteGroupMemberAPI = (MuteGroupMemberDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["禁言群成员"]), typeof(MuteGroupMemberDelegate));
+			MuteGroupMember = MuteGroupMemberAPI;
+			GC.KeepAlive(MuteGroupMember);
+			MuteGroupAllDelegate MuteGroupAllAPI = (MuteGroupAllDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["全员禁言"]), typeof(MuteGroupAllDelegate));
+			MuteGroupAll = MuteGroupAllAPI;
+			GC.KeepAlive(MuteGroupAll);
+			SetupAdministratorDelegate SetupAdministratorAPI = (SetupAdministratorDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["设置管理员"]), typeof(SetupAdministratorDelegate));
+			SetupAdministrator = SetupAdministratorAPI;
+			GC.KeepAlive(SetupAdministrator);
+			ShareMusicDelegate ShareMusicAPI = (ShareMusicDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["分享音乐"]), typeof(ShareMusicDelegate));
+			ShareMusic = ShareMusicAPI;
+			GC.KeepAlive(ShareMusic);
+			GetQQWalletPersonalInformation GetQQWalletPersonalInformationAPI = (GetQQWalletPersonalInformation)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["取QQ钱包个人信息"]), typeof(GetQQWalletPersonalInformation));
+			GetQQWalletPersonalInfo = GetQQWalletPersonalInformationAPI;
+			GC.KeepAlive(GetQQWalletPersonalInfo);
+			GetMoneyCookieDelegate GetMoneyCookieAPI = (GetMoneyCookieDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["取钱包cookie"]), typeof(GetMoneyCookieDelegate));
+			GetMoneyCookie = GetMoneyCookieAPI;
+			GC.KeepAlive(GetMoneyCookie);
+			GetClientKeyDelegate GetClientKeyAPI = (GetClientKeyDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["获取clientkey"]), typeof(GetClientKeyDelegate));
+			GetClientKey = GetClientKeyAPI;
+			GC.KeepAlive(GetClientKey);
+			GetPSKeyDelegate GetPSKeyAPI = (GetPSKeyDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["获取pskey"]), typeof(GetPSKeyDelegate));
+			GetPSKey = GetPSKeyAPI;
+			GC.KeepAlive(GetPSKey);
+			GetSKeyDelegate GetSKeyAPI = (GetSKeyDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["获取skey"]), typeof(GetSKeyDelegate));
+			GetSKey = GetSKeyAPI;
+			GC.KeepAlive(GetSKey);
+			GetGroupMemberBriefInfoDelegate GetGroupMemberBriefInfoAPI = (GetGroupMemberBriefInfoDelegate)Marshal.GetDelegateForFunctionPointer(new IntPtr(json["取群成员简略信息"]), typeof(GetGroupMemberBriefInfoDelegate));
+			GetGroupMemberBriefInfo = GetGroupMemberBriefInfoAPI;
+			GC.KeepAlive(GetGroupMemberBriefInfo);
 		}
 		#endregion
 		#region 函数委托指针
@@ -635,7 +702,7 @@ namespace Statistics
 		//设置群名片
 		public static SetupGroupCardInfoDelegate SetupGroupCardInfo = null;
 		[UnmanagedFunctionPointer(CallingConvention.Winapi, CharSet = CharSet.Ansi)]
-		public delegate bool SetupGroupCardInfoDelegate(string pkey, long thisQQ, long otherGroupQQ, long memberQQ, [MarshalAs(UnmanagedType.LPStr)] string newCard );
+		public delegate bool SetupGroupCardInfoDelegate(string pkey, long thisQQ, long otherGroupQQ, long memberQQ, [MarshalAs(UnmanagedType.LPStr)] string newCard);
 		//创建群文件夹
 		[UnmanagedFunctionPointer(CallingConvention.Winapi, CharSet = CharSet.Ansi)]
 		public delegate IntPtr CreateGroupFolderDelegate(string pkey, long thisQQ, long groupQQ, [MarshalAs(UnmanagedType.LPStr)] string folder);
@@ -657,7 +724,7 @@ namespace Statistics
 		//删除好友
 		public static DeleteFriendDelegate DeleteFriend = null;
 		[UnmanagedFunctionPointer(CallingConvention.Winapi, CharSet = CharSet.Ansi)]
-		public delegate bool DeleteFriendDelegate(string pkey, long thisQQ,long friendQQ);
+		public delegate bool DeleteFriendDelegate(string pkey, long thisQQ, long friendQQ);
 		//发送临时消息
 		[UnmanagedFunctionPointer(CallingConvention.Winapi, CharSet = CharSet.Ansi)]
 		public delegate IntPtr SendGroupTemporaryMessage(string pkey, long thisQQ, long groupQQ, long otherQQ, [MarshalAs(UnmanagedType.LPStr)] string content, ref long random, ref int req);
@@ -666,8 +733,9 @@ namespace Statistics
 		[UnmanagedFunctionPointer(CallingConvention.Winapi, CharSet = CharSet.Ansi)]
 		public delegate void ReadForwardedChatHistoryDelegate(string pkey, long thisQQ, [MarshalAs(UnmanagedType.LPStr)] string resID, [MarshalAs(UnmanagedType.LPStr)] ref string retPtr);
 		//分享音乐
+		public static ShareMusicDelegate ShareMusic = null;
 		[UnmanagedFunctionPointer(CallingConvention.Winapi, CharSet = CharSet.Ansi)]
-		public delegate bool ShareMusic(string pkey, long thisQQ, long otherQQ, [MarshalAs(UnmanagedType.LPStr)] string music_name, [MarshalAs(UnmanagedType.LPStr)] string artist_name, [MarshalAs(UnmanagedType.LPStr)] string redirect_link, [MarshalAs(UnmanagedType.LPStr)] string cover_link, [MarshalAs(UnmanagedType.LPStr)] string file_path, int app_type, int share_type);
+		public delegate bool ShareMusicDelegate(string pkey, long thisQQ, long otherQQ, [MarshalAs(UnmanagedType.LPStr)] string music_name, [MarshalAs(UnmanagedType.LPStr)] string artist_name, [MarshalAs(UnmanagedType.LPStr)] string redirect_link, [MarshalAs(UnmanagedType.LPStr)] string cover_link, [MarshalAs(UnmanagedType.LPStr)] string file_path, PInvoke.MusicAppTypeEnum app_type, PInvoke.MusicShare_Type share_type);
 		//更改群聊消息内容
 		[UnmanagedFunctionPointer(CallingConvention.Winapi, CharSet = CharSet.Ansi)]
 		public delegate bool ModifyGroupMessageContent(string pkey, [MarshalAs(UnmanagedType.SysInt)] int data_pointer, [MarshalAs(UnmanagedType.LPStr)] string new_message_content);
@@ -707,9 +775,17 @@ namespace Statistics
 		// 强制取昵称
 		[UnmanagedFunctionPointer(CallingConvention.Winapi, CharSet = CharSet.Ansi)]
 		public delegate IntPtr GetNameForce(string pkey, long thisQQ, long otherQQ);
-		// 取QQ钱包个人信息
+
 		[UnmanagedFunctionPointer(CallingConvention.Winapi, CharSet = CharSet.Ansi)]
-		public delegate IntPtr GetQQWalletPersonalInformation(string pkey, long thisQQ, ref PInvoke.QQWalletInfoDataList[] qQWalletInfoDataLists);
+		public delegate IntPtr GetOrderDetailDegelte(string pkey, long thisQQ, [MarshalAs(UnmanagedType.LPStr)] string orderID, ref PInvoke.OrderDetaildDataList[] data);
+		// 取QQ钱包个人信息
+		public static GetQQWalletPersonalInformation GetQQWalletPersonalInfo = null;
+		[UnmanagedFunctionPointer(CallingConvention.Winapi, CharSet = CharSet.Ansi)]
+		public delegate IntPtr GetQQWalletPersonalInformation(string pkey, long thisQQ, ref PInvoke.QQWalletDataList[] qQWalletInfoDataLists);
+		// 取钱包cookie
+		public static GetMoneyCookieDelegate GetMoneyCookie = null;
+		[UnmanagedFunctionPointer(CallingConvention.Winapi, CharSet = CharSet.Ansi)]
+		public delegate IntPtr GetMoneyCookieDelegate(string pkey, long thisQQ);
 		// 从缓存获取昵称
 		[UnmanagedFunctionPointer(CallingConvention.Winapi, CharSet = CharSet.Ansi)]
 		public delegate IntPtr GetNameFromCache(string pkey, long otherQQ);
@@ -774,7 +850,7 @@ namespace Statistics
 		//禁言群成员
 		public static MuteGroupMemberDelegate MuteGroupMember = null;
 		[UnmanagedFunctionPointer(CallingConvention.Winapi, CharSet = CharSet.Ansi)]
-		public delegate bool MuteGroupMemberDelegate(string pkey, long thisQQ, long groupQQ, long memberQQ,uint muteTime);
+		public delegate bool MuteGroupMemberDelegate(string pkey, long thisQQ, long groupQQ, long memberQQ, uint muteTime);
 		//全员禁言
 		public static MuteGroupAllDelegate MuteGroupAll = null;
 		[UnmanagedFunctionPointer(CallingConvention.Winapi, CharSet = CharSet.Ansi)]
@@ -870,13 +946,15 @@ namespace Statistics
 		// 置群内消息通知
 		[UnmanagedFunctionPointer(CallingConvention.Winapi, CharSet = CharSet.Ansi)]
 		public delegate bool GroupNoticeMethod(string pkey, long thisQQ, long GroupQQ, long otherQQ, int metohd);
-		// 修改群名称
-		public delegate IntPtr GetGroupMemberBriefInfo(string pkey, long thisQQ, long GroupQQ, ref PInvoke.GMBriefDataList[] gMBriefDataLists);
-		public delegate bool UpdataGroupName(string pkey, long thisQQ, long GroupQQ, [MarshalAs(UnmanagedType.LPStr)] string NewGroupName);
-		// 登录网页取ck
-		//public static GetCookieDelegate GetCookie = null;
-		//[UnmanagedFunctionPointer(CallingConvention.Winapi, CharSet = CharSet.Ansi)]
-		//public delegate bool GetCookieDelegate(string pkey, long thisQQ, [MarshalAs(UnmanagedType.LPStr)] string jmpurl, [MarshalAs(UnmanagedType.LPStr)] string appid, [MarshalAs(UnmanagedType.LPStr)] string daid, [MarshalAs(UnmanagedType.LPStr)]ref string cookie);
+		//取群成员简略信息
+		public static GetGroupMemberBriefInfoDelegate GetGroupMemberBriefInfo = null;
+
+		[UnmanagedFunctionPointer(CallingConvention.Winapi, CharSet = CharSet.Ansi)]
+		public delegate IntPtr GetGroupMemberBriefInfoDelegate(string pkey, long thisQQ, long GroupQQ, ref PInvoke.GMBriefDataList[] gMBriefDataLists);
+		//修改群名称
+		[UnmanagedFunctionPointer(CallingConvention.Winapi, CharSet = CharSet.Ansi)]
+		public delegate bool UpdataGroupNameDelegate(string pkey, long thisQQ, long GroupQQ, [MarshalAs(UnmanagedType.LPStr)] string NewGroupName);
+
 		#endregion
 
 		#region 全局异常
